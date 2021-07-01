@@ -1,0 +1,71 @@
+springboot框架是spring框架的升级版，但是不够严谨，这里我把它称为集大成者，史上最强！
+springboot省去了添加大量的依赖，省去了部署各种应用宝，省去了创建各种框架的配置文件，省去了....
+
+springboot的两大核心：
+    1. 依赖注入：只要添加springboot中starter-web，，就相当于吧所有的web的依赖全部加在里面，牛逼不！
+    2. 自动配置：只要启动springboot应用主函数，就会将所有的配置类进行加载（不一定全部生效，条件装配），然后放入容器中，
+    等待用户的使用即可。
+
+注意：也就添加一个springboot应用的主函数，这是必须的，这是访问程序的入口----SpringApplication.run(Springboottest.class,args)
+，返回的对象就是springboot容器对象，在容器对象里面，有所依创建好的对象。
+
+springboot的helloworld实现步骤：
+1. 创建maven的web项目
+2. 添加依赖，springboot的依赖（别的不用添加） ---注意的是添加的依赖是两个，一个是父项目依赖，一个是springboot-starter-web
+3. 创建主函数，@springbootApplication注解
+4. 创建处理类，和@controller的内容一样
+
+
+===> 一定注意其他的配置类和所有的类（界面层类，业务层类，持久层类...）都放在springboot主函数所在的包下面，这样启动springboot
+的主函数，才会加载所有本包下面的所有类。
+
+
+分析springboot的执行原理，就得关注框架底层注解和之间的调用。主要的注解包含：
+1. @springbootApplication主函数类上面加
+2. @Configuration 在配置类的上面加（相当于spring框架的配置文件）
+   @Bean 在配置类下面的方法上面加（相当于配置文件创建对象的<bean></bean>） 返回值类型是创建对象的类型，方法名是创建
+   对象的默认名字，可以再Bean后面修改为自己想要的名字  方法内return的结果是具体的创建的对象
+   springboot还会加载spring注解创建的对象，例如@Component @Controller @Service @Repository
+3. @ComponentScan 在主函数类的上面，，是类的扫描器，默认是主类所在下面的包
+4. @Import 导入指定的组件类型，例如在配置类中，去导入web中某一个类，在配置类下面就可以使用
+5. @ImportResource 导入spring的配置文件（数据从spring迁移到springboot的时候），就自动将配置文件中对象转换为springboot
+    中创建的对象。
+6. @springbootApplication是放到主函数类的上面，表示的是springboot的应用；他有三个注解可以替代他：
+    @springbConfiguration 指明springboot应用
+    @ComponentScan 扫描自己创建的对象
+    @EnableAutoConfiguration 开启自动配置（也就是将依赖自带的配置类加载进来（条件装配））【核心】
+7. @ConfigurationProperties + @Component 配置绑定（某个类绑定属性配置文件，使用配置文件中的值去给属性赋值）
+    相当于：@EnableConfigurationProperties（class对象）+ @ConfigurationProperties（属性前缀）
+    @EnableConfigurationProperties（class对象）作用：
+        1）对哪个类开启配置绑定
+        2）创建该类的对象，放入容器（注意：只有容器中的对象才可以绑定springboot的配置文件）
+8. @EnableAutoConfiguration 引导加载依赖带的自动配置类【重点】
+    其中底层两个主要的注解：
+        1）@AutoConfigurationPackage 将底层依赖中的所有的包加载，里面包含大量的配置类
+        2）在往低下 @Import（AutoConfigutationImportSeletor.class） 将底层依赖中的所有的配置类加载，但不是全部生效（按条装配）
+9. @Conditional 按条装配，这个就是限制加载的配置类是否生效（也就是加上一层关卡，看是否满足才放行）【重点】
+    加的地方有两个：
+        1）加载类上面，说明该类下面所有的方法都得必须满足这个条件，才能生效，否则不能；
+        2）加载方法上面，说明该方法（@Bean修饰的方法，创建对象用的），必须满足该条件，才会创建，放到容器内。
+
+面试常问的springboot自动配置的步骤：
+1. 启动主函数，springboot会加载自己创建的配置类和底层依赖的配置类（所有的配置类）
+2. 每个自动配置的类，都按照条件进行生效，默认是springboot配置文件中的值（一般配置类都会与配置属性文件进行绑定）
+3. 生效的配置类会给容器springboot增加大量的组件，这样用户就可以直接使用这些容器内的组件
+4. 自定义配置（不满足底层的创建）
+    1）自己直接添加配置类，必须在主函数类的包下面创建
+    2）修改配置文件，使用绑定配置的方式，动态的传递我们想要的参数
+
+最佳实践：
+1. 导入场景依赖
+<spring-boot-starter-parent->这是一个父依赖，包含springboot中所有的依赖（绝大部分）
+<spring-boot-starter-web> 就是将web这个应用下的所有的依赖都导入进来（127个）
+具体的需要导入那个模块的依赖看官网：
+https://docs.spring.io/spring-boot/docs/current/reference/html/using.html#using.build-systems.starters
+2.查看自动配置了哪些（选做）
+    1）自己分析，引入场景对应的自动配置一般都生效了
+    2）配置文件中debug=true开启自动配置报告。Negative（不生效）、Positive（生效）
+3. 是否需要修改
+    1）参考文档修改配置置顶(也就是自己添加配置类创建对象)
+    2）自己分析  xxxxProperties
+    3）
